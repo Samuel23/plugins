@@ -3,15 +3,20 @@
 //===== By: ==================================================
 //= Samuel [Hercules]
 //===== Current Version: =====================================
-//= 1.0
-//===== Compatible With: ===================================== 
+//= 1.1
+//===== Compatible With: =====================================
 //= Hercules
-//===== Description: =========================================
+//===== Changelog: ===========================================
+//= v1.0 - Initial Conversion
+//= v1.1 - Compatible with new Hercules [20200629]
+//==== Description: ==========================================
 //= Shows map name upon entering
 //= Uses txt database where in you can edit what will show for
 //= a certain map -> see map_desc.txt
 //= @reloadmapdesc - reloads map_name_desc.txt
 //= With ability to customized color and font size
+//==== Known Bug =============================================
+//= Upon login, it shows twice
 //===== Credits: =============================================
 //= [Cydh] - rAthena
 //============================================================
@@ -49,29 +54,29 @@ struct my_map_data {
 int map_announce_color;
 int map_announce_fontsize;
 
-void val_bconf(const char *key, const char *val)
-{
-	if (strcmpi(key,"map_announce_color") == 0) {
+void val_bconf(const char *key, const char *val) {
+	
+	if (strcmpi(key, "battle_configuration/map_announce_color") == 0) {
 		map_announce_color = config_switch(val);
 		if (map_announce_color > 0xFFFFFF || map_announce_color < 0x000000) {
-			ShowDebug("Wrong Value for map_announce_color: %d\n",config_switch(val));
+			ShowDebug("Wrong Value for map_announce_color: %d\n", config_switch(val));
 			map_announce_color = 0xFFFF00;
 		}
-	} else if (strcmpi(key,"map_announce_fontsize") == 0) {
+	}
+	else if (strcmpi(key, "battle_configuration/map_announce_size") == 0) {
 		map_announce_fontsize = config_switch(val);
 		if (map_announce_fontsize > 32 || map_announce_fontsize < 10) {
-			ShowDebug("Wrong Value for map_announce_fontsize: %d\n",config_switch(val));
+			ShowDebug("Wrong Value for map_announce_size: %d\n", config_switch(val));
 			map_announce_fontsize = 12;
 		}
 	}
 	return;
 }
 
-int val_return_bconf(const char *key)
-{
-	if (strcmpi(key,"map_announce_color") == 0) {
+int val_return_bconf(const char *key) {
+	if (strcmpi(key,"battle_configuration/map_announce_color") == 0) {
 		return map_announce_color;
-	} else if (strcmpi(key,"map_announce_fontsize") == 0) {
+	} else if (strcmpi(key,"battle_configuration/map_announce_size") == 0) {
 		return map_announce_fontsize;
 	}
 	return 0;
@@ -81,8 +86,7 @@ int val_return_bconf(const char *key)
  * Announce map name/description to player
  * [Cydh] house.bad@gmail.com
  *------------------------------------------*/
-static bool map_parse_row_desc(char* split[], int columns, int current)
-{
+static bool map_parse_row_desc(char* split[], int columns, int current) {
 	struct my_map_data *mymap;
 	short m;
 	unsigned long map_color;
@@ -93,16 +97,14 @@ static bool map_parse_row_desc(char* split[], int columns, int current)
 	memset(map_desc,0,sizeof(map_desc));
 
 	// find mapindex
-	if( sscanf(split[0], "%31[^:]", map_name) != 1 )
-	{
+	if( sscanf(split[0], "%31[^:]", map_name) != 1 ) {
 		ShowInfo("map_parse_row_desc: Invalid map name, skipping... (map: %s)\n", map_name);
 		return true;
 	}
 
 	m = map->mapname2mapid(map_name);
 
-	if( m < 0 )
-	{
+	if( m < 0 ) {
 		ShowInfo("map_parse_row_desc: Unknown map, skipping... (map: %s)\n", map_name);
 		return true;
 	}
@@ -125,13 +127,11 @@ static bool map_parse_row_desc(char* split[], int columns, int current)
 }
 
 void map_load_name_desc(void);
-void map_load_name_desc(void)
-{
+void map_load_name_desc(void) {
 	sv->readdb(map->db_path, "map_desc.txt", ':', 2, 3, -1, map_parse_row_desc);
 }
 
-void clif_parse_LoadEndAck_mappost (int fd, struct map_session_data *sd)
-{
+void clif_parse_LoadEndAck_mappost (int fd, struct map_session_data *sd) {
 	struct my_map_data *mymap;
 	nullpo_retv(sd);
 	mymap = getFromMAPD(&map->list[sd->bl.m], 0);
@@ -147,21 +147,20 @@ void clif_parse_LoadEndAck_mappost (int fd, struct map_session_data *sd)
  * @reloadmapdesc - reloads map_name_desc.txt
  * [Cydh] house.bad@gmail.com
  *------------------------------------------*/
-ACMD(reloadmapdesc)
-{
+ACMD(reloadmapdesc) {
 	map_load_name_desc();
 	clif->messagecolor_self(fd, COLOR_GREEN, "Map descriptions had been reloaded.");
 	return true;
 }
 
 HPExport void plugin_init (void) {
+	map_load_name_desc();
+
 	addAtcommand("reloadmapdesc",reloadmapdesc);
 	addHookPost(clif, pLoadEndAck, clif_parse_LoadEndAck_mappost);
-
-	map_load_name_desc();
 }
 
 HPExport void server_preinit (void) {
-	addBattleConf("map_announce_color",val_bconf, val_return_bconf);
-	addBattleConf("map_announce_fontsize",val_bconf, val_return_bconf);
+	addBattleConf("battle_configuration/map_announce_color",val_bconf, val_return_bconf, false);
+	addBattleConf("battle_configuration/map_announce_size",val_bconf, val_return_bconf, false);
 }
