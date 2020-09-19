@@ -137,10 +137,13 @@ static int clif_setlevel(struct block_list *bl)
 	return lv;
 }
 
-bool clif_show_monster_hp_bar (const struct mob_data *md, struct block_list *bl);
-static bool clif_show_monster_hp_bar(const struct mob_data *md, struct block_list *bl) {
+static bool clif_show_monster_hp_bar(struct block_list *bl) {
 
-	if (status_get_hp(bl) < status_get_max_hp(bl)) {
+	nullpo_ret(bl);
+
+	const struct mob_data *md = BL_UCCAST(BL_MOB, bl);
+
+	if (bl->type == BL_MOB && status_get_hp(bl) < status_get_max_hp(bl)) {
 		if ((battle->bc->show_monster_hp_bar && !(md->class_ == MOBID_EMPELIUM) && !(md->status.mode & MD_BOSS))
 			|| (bc_hpbaremp && (md->class_ == MOBID_EMPELIUM))
 			|| (bc_hpbarmvp && (md->status.mode & MD_BOSS) && !(md->class_ == MOBID_EMPELIUM))
@@ -220,19 +223,17 @@ void clif_set_unit_idle_overload(struct block_list *bl, struct map_session_data 
 	p.font = (sd) ? sd->status.font : 0;
 #endif
 #if PACKETVER >= 20120221
-	const struct mob_data *md = BL_UCCAST(BL_MOB, bl);
-	if (clif_show_monster_hp_bar(md, bl) == true) {
+	if (clif_show_monster_hp_bar(bl) == true) {
 		p.maxHP = status_get_max_hp(bl);
 		p.HP = status_get_hp(bl);
-	}
-	else {
+	} else {
 		p.maxHP = -1;
 		p.HP = -1;
 	}
 	if (bl->type == BL_MOB) {
+		const struct mob_data *md = BL_UCCAST(BL_MOB, bl);
 		p.isBoss = (md->spawn != NULL) ? md->spawn->state.boss : BTYPE_NONE;
-	}
-	else {
+	} else {
 		p.isBoss = BTYPE_NONE;
 	}
 #endif
@@ -320,19 +321,17 @@ void clif_set_unit_walking_overload(struct block_list *bl, struct map_session_da
 	p.font = (sd) ? sd->status.font : 0;
 #endif
 #if PACKETVER >= 20120221
-	const struct mob_data *md = BL_UCCAST(BL_MOB, bl);
-	if (clif_show_monster_hp_bar(md, bl) == true) {
+	if (clif_show_monster_hp_bar(bl) == true) {
 		p.maxHP = status_get_max_hp(bl);
 		p.HP = status_get_hp(bl);
-	}
-	else {
+	} else {
 		p.maxHP = -1;
 		p.HP = -1;
 	}
 	if (bl->type == BL_MOB) {
+		const struct mob_data *md = BL_UCCAST(BL_MOB, bl);
 		p.isBoss = (md->spawn != NULL) ? md->spawn->state.boss : BTYPE_NONE;
-	}
-	else {
+	} else {
 		p.isBoss = BTYPE_NONE;
 	}
 #endif
@@ -429,19 +428,17 @@ void clif_spawn_unit_overload(struct block_list *bl, enum send_target target) {
 	p.font = (sd) ? sd->status.font : 0;
 #endif
 #if PACKETVER >= 20120221
-	const struct mob_data *md = BL_UCCAST(BL_MOB, bl);
-	if (clif_show_monster_hp_bar(md, bl) == true) {
+	if (clif_show_monster_hp_bar(bl) == true) {
 		p.maxHP = status_get_max_hp(bl);
 		p.HP = status_get_hp(bl);
-	}
-	else {
+	} else {
 		p.maxHP = -1;
 		p.HP = -1;
 	}
 	if (bl->type == BL_MOB) {
+		const struct mob_data *md = BL_UCCAST(BL_MOB, bl);
 		p.isBoss = (md->spawn != NULL) ? md->spawn->state.boss : BTYPE_NONE;
-	}
-	else {
+	} else {
 		p.isBoss = BTYPE_NONE;
 	}
 #endif
@@ -507,7 +504,7 @@ void mob_damage_overload(struct mob_data *md, struct block_list *src, int damage
 
 #if PACKETVER >= 20131223
 	// Resend ZC_NOTIFY_MOVEENTRY to Update the HP
-	if (clif_show_monster_hp_bar(md, &md->bl) == true)
+	if (clif_show_monster_hp_bar(&md->bl) == true)
 		clif->set_unit_walking(&md->bl, NULL, unit->bl2ud(&md->bl), AREA);
 #endif
 
@@ -535,7 +532,7 @@ void mob_heal_overload(struct mob_data *md, unsigned int heal)
 		clif->blname_ack(0, &md->bl);
 #if PACKETVER >= 20131223
 	// Resend ZC_NOTIFY_MOVEENTRY to Update the HP
-	if (clif_show_monster_hp_bar(md, &md->bl) == true)
+	if (clif_show_monster_hp_bar(&md->bl) == true)
 		clif->set_unit_walking(&md->bl, NULL, unit->bl2ud(&md->bl), AREA);
 #endif
 
